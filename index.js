@@ -120,7 +120,7 @@ function ads1x15(ic, address, i2c_dev) {
   {
     i2c_dev = '/dev/i2c-1'; // default to pi 2b/3...
   }
-  if(!(ic == IC_ADS1015 | ic == IC_ADS1115))
+  if(!(ic == 'IC_ADS1015' || ic == 'IC_ADS1115'))
   {
     throw "Error: not a supported device";
   }
@@ -168,7 +168,7 @@ ads1x15.prototype.readADCSingleEnded = function(channel, pga, sps, callback) {
   // If sps is in the dictionary (defined in init) it returns the value of the constant
   // othewise it returns the value for 250sps. This saves a lot of if/elif/else code!
 
-    if (self.ic == IC_ADS1015)
+    if (self.ic == 'IC_ADS1015')
     {
       if(spsADS1015[sps])
       {
@@ -245,7 +245,7 @@ ads1x15.prototype.readADCSingleEnded = function(channel, pga, sps, callback) {
             callback(err);
           }
           var data = -0.1;
-          if (self.ic == IC_ADS1015)
+          if (self.ic == 'IC_ADS1015')
           {
             // Shift right 4 bits for the 12-bit ADS1015 and convert to mV
             // console.log('res0 = ' + res[0] + ', res1: ' + res[1]);
@@ -339,7 +339,7 @@ ads1x15.prototype.readADCDifferential = function(chP, chN, pga, sps, callback) {
     // Set sample per seconds, defaults to 250sps
     // If sps is in the dictionary (defined in init()) it returns the value of the constant
     // othewise it returns the value for 250sps. This saves a lot of if/elif/else code!
-    if (this.ic == IC_ADS1015)
+    if (this.ic == 'IC_ADS1015')
     {
       config |= spsADS1015[sps];
     }
@@ -385,7 +385,7 @@ ads1x15.prototype.readADCDifferential = function(chP, chN, pga, sps, callback) {
 
     setTimeout(function() {
       self.wire.readBytes(ADS1015_REG_POINTER_CONVERT, 2, function(err, res) {
-        if (self.ic == IC_ADS1015)
+        if (self.ic == 'IC_ADS1015')
         {        
           // Shift right 4 bits for the 12-bit ADS1015 and convert to mV
           var data = ( ((res[0] << 8) | (res[1] & 0xFF)) >> 4 ) * pga / 2048.0;
@@ -472,7 +472,7 @@ ads1x15.prototype.readADCDifferential13 = function(pga, sps, callback) {
 // see data sheet page 14 for more info. 
 // The pga must be given in mV, see page 13 for the supported values.
 
-ads1x15.prototype.readADCDifferential23 = function(pga, sps, callback) { 
+ads1x15.prototype.readADCDifferential23 = function(pga, sps, callback) {
   if(!pga)
     pga = 6144;
   if(!sps)
@@ -486,7 +486,7 @@ ads1x15.prototype.readADCDifferential23 = function(pga, sps, callback) {
 // in mV from the specified channel. 
 // The sps controls the sample rate. 
 // The pga must be given in mV, see datasheet page 13 for the supported values. 
-// Use getLastConversionResults() to read the next values and 
+// Use getLastConversionResults() to read the next values and
 // stopContinuousConversion() to stop converting.
 
 ads1x15.prototype.startContinuousConversion = function(channel, pga, sps, callback) {
@@ -519,7 +519,7 @@ ads1x15.prototype.startContinuousConversion = function(channel, pga, sps, callba
     // Set sample per seconds, defaults to 250sps
     // If sps is in the dictionary (defined in init()) it returns the value of the constant
     // othewise it returns the value for 250sps. This saves a lot of if/elif/else code!
-    if (this.ic == IC_ADS1015)
+    if (this.ic == 'IC_ADS1015')
     {
       config |= spsADS1015[sps];
     }
@@ -587,7 +587,7 @@ ads1x15.prototype.startContinuousConversion = function(channel, pga, sps, callba
     delay = 1000 / sps + 1;
     setTimeout(function() {
       self.wire.readBytes(ADS1015_REG_POINTER_CONVERT, 2, function(err, res) {
-        if (this.ic == IC_ADS1015)
+        if (this.ic == 'IC_ADS1015')
         {
           // Shift right 4 bits for the 12-bit ADS1015 and convert to mV
           var data =  ( ((res[0] << 8) | (res[1] & 0xFF)) >> 4 ) * pga / 2048.0;
@@ -637,20 +637,20 @@ ads1x15.prototype.stopContinuousConversion = function(callback) {
       console.log("Error: " + err);
       callback(err);
     }
-    else return true;
+    else return callback(null, true);
   });
 }
 
 // Returns the last ADC conversion result in mV
 
 ads1x15.prototype.getLastConversionResults = function(callback) {
-
+  var self  = this;
   // Read the conversion results
-  this.wire.readBytes(ADS1015_REG_POINTER_CONVERT, 2, function(err, res) {
-    if (this.ic == IC_ADS1015)
+  self.wire.readBytes(ADS1015_REG_POINTER_CONVERT, 2, function(err, res) {
+    if (self.ic == 'IC_ADS1015')
     {
       // Shift right 4 bits for the 12-bit ADS1015 and convert to mV
-      var data = ( ((res[0] << 8) | (res[1] & 0xFF)) >> 4 ) * this.pga / 2048.0;
+      var data = ( ((res[0] << 8) | (res[1] & 0xFF)) >> 4 ) * self.pga / 2048.0;
       callback(null, data);
     }
     else
@@ -661,12 +661,13 @@ ads1x15.prototype.getLastConversionResults = function(callback) {
       var val = (res[0] << 8) | (res[1])
       if (val > 0x7FFF)
       {
-        data =  (val - 0xFFFF) * this.pga / 32768.0;
+        data =  (val - 0xFFFF) * self.pga / 32768.0;
       }
       else
       {
-        data =  ( (res[0] << 8) | (res[1]) ) * this.pga / 32768.0;
+        data =  ( (res[0] << 8) | (res[1]) ) * self.pga / 32768.0;
       }
+      callback(null, data);
     }
   });
 }
@@ -751,7 +752,7 @@ ads1x15.prototype.startSingleEndedComparator = function(channel, thresholdHigh, 
     // Set sample per seconds, defaults to 250sps
     // If sps is in the dictionary (defined in init()) it returns the value of the constant
     // othewise it returns the value for 250sps. This saves a lot of if/elif/else code!
-    if (this.ic == IC_ADS1015)
+    if (this.ic == 'IC_ADS1015')
     {
       if (!(spsADS1015[sps]))
       {
@@ -797,19 +798,19 @@ ads1x15.prototype.startSingleEndedComparator = function(channel, thresholdHigh, 
     }
 
     // Set 'start single-conversion' bit to begin conversions
-    config |= DS1015_REG_CONFIG_OS_SINGLE;
+    config |= ADS1015_REG_CONFIG_OS_SINGLE;
 
     // Write threshold high and low registers to the ADC
     // V_digital = (2^(n-1)-1)/pga*V_analog
     var thresholdHighWord = 0;
 
-    if (this.ic == IC_ADS1015)
+    if (this.ic == 'IC_ADS1015')
     {
-      thresholdHighWORD = int(thresholdHigh*(2048.0/pga));
+      thresholdHighWORD = parseInt(thresholdHigh*(2048.0/pga));
     }
     else
     {
-      thresholdHighWORD = int(thresholdHigh*(32767.0/pga));
+      thresholdHighWORD = parseInt(thresholdHigh*(32767.0/pga));
     }
 
     var bytes = [(thresholdHighWORD >> 8) & 0xFF, thresholdHighWORD & 0xFF];
@@ -823,13 +824,13 @@ ads1x15.prototype.startSingleEndedComparator = function(channel, thresholdHigh, 
     });
     var thresholdLowWORD = 0;
 
-    if (this.ic == IC_ADS1015)
+    if (this.ic == 'IC_ADS1015')
     {
-      thresholdLowWORD = int(thresholdLow*(2048.0/pga));
+      thresholdLowWORD = parseInt(thresholdLow*(2048.0/pga));
     }
     else
     {
-      thresholdLowWORD = int(thresholdLow*(32767.0/pga));
+      thresholdLowWORD = parseInt(thresholdLow*(32767.0/pga));
     }
     var bytes = [(thresholdLowWORD >> 8) & 0xFF, thresholdLowWORD & 0xFF];
 
@@ -890,7 +891,7 @@ ads1x15.prototype.startDifferentialComparator = function(chP, chN, thresholdHigh
 
     // Continuous mode
     config = ADS1015_REG_CONFIG_MODE_CONTIN;
-    if (activeLow==False)
+    if (activeLow == false)
     {
       config |= ADS1015_REG_CONFIG_CPOL_ACTVHI;
     }
@@ -930,7 +931,7 @@ ads1x15.prototype.startDifferentialComparator = function(chP, chN, thresholdHigh
     // Set sample per seconds, defaults to 250sps
     // If sps is in the dictionary (defined in init()) it returns the value of the constant
     // othewise it returns the value for 250sps. This saves a lot of if/elif/else code!
-    if (this.ic == IC_ADS1015)
+    if (this.ic == 'IC_ADS1015')
     {
       if (!(spsADS1015[sps]))
       {
@@ -987,13 +988,13 @@ ads1x15.prototype.startDifferentialComparator = function(chP, chN, thresholdHigh
     // V_digital = (2^(n-1)-1)/pga*V_analog;
 
     var thresholdHighWORD = 0;
-    if (this.ic == IC_ADS1015)
+    if (this.ic == 'IC_ADS1015')
     {
-      thresholdHighWORD = int(thresholdHigh*(2048.0/pga));
+      thresholdHighWORD = parseInt(thresholdHigh*(2048.0/pga));
     } 
     else
     {
-      thresholdHighWORD = int(thresholdHigh*(32767.0/pga));
+      thresholdHighWORD = parseInt(thresholdHigh*(32767.0/pga));
     }
     var bytes = [(thresholdHighWORD >> 8) & 0xFF, thresholdHighWORD & 0xFF];
 
@@ -1002,13 +1003,13 @@ ads1x15.prototype.startDifferentialComparator = function(chP, chN, thresholdHigh
     });
 
     var thresholdLowWORD = 0;
-    if (this.ic == IC_ADS1015)
+    if (this.ic == 'IC_ADS1015')
     {
-      thresholdLowWORD = int(thresholdLow*(2048.0/pga));
+      thresholdLowWORD = parseInt(thresholdLow*(2048.0/pga));
     }
     else
     {
-      thresholdLowWORD = int(thresholdLow*(32767.0/pga));
+      thresholdLowWORD = parseInt(thresholdLow*(32767.0/pga));
     }
     bytes = [(thresholdLowWORD >> 8) & 0xFF, thresholdLowWORD & 0xFF];
 
